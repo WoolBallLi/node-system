@@ -21,9 +21,7 @@ const casts = {
     }
     ], (err, result) => {
       if (err) throw err;
-      res.render('casts', {
-        result
-      })
+      res.send(result)
     })
   },
   castspaging: (req, res, next) => {
@@ -53,15 +51,34 @@ const casts = {
     }], (err, result) => {
       if (err) throw err;
       var { data, totalNum } = result;
-      res.render('casts', {
-        result: data,
-        totalNum,
-        limitNum,
-        skipNum
-      })
+      res.send(data);
     })
   },
-  
+  getCastData:( req, res, next ) => {
+      
+      // res.render('casts_update');
+      //先查询填充数据后更新
+      var { id, limitNum, skipNum } = url.parse( req.url, true ).query;
+      
+      async.waterfall( [
+        ( cb ) => {
+          MongoClient.connect( mongoUrl, ( err, db ) => {
+            if ( err ) throw err;
+            cb( null, db );
+          })
+        },
+        ( db, cb ) => {
+          db.collection('casts').find({id:id}).toArray( ( err, res ) => {
+            if ( err ) throw err;
+            cb( null, res );
+            db.close();
+          })
+        }
+      ], ( err, result ) => {
+        if ( err ) throw err;
+        res.send(result)
+      }
+  )},
   delCasts: (req, res, next) => {
     var { id, limitNum, skipNum } = url.parse(req.url, true).query;
     async.waterfall([(cb) => {
@@ -171,7 +188,7 @@ const casts = {
     }], (err, result) => {
       if (err) throw err;
       if (result == 'ok') {
-        res.redirect('/castspaging?limitNum' + limitNum + "&skipNum=" + skipNum)
+        res.send('ok')
       }
     })
   }
